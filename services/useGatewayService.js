@@ -45,31 +45,35 @@ class UseGatewayService {
 
       console.log('Sending to UseGateway:', payload);
       
-      let response;
-      try {
-        response = await this.client.post('/payments', payload);
-      } catch (error) {
-        // Handle redirect response
-        if (error.response && error.response.status === 307) {
-          const redirectUrl = error.response.headers.location;
-          console.log('Following redirect to:', redirectUrl);
-          
-          // Make request to redirect URL
-          response = await require('axios').post(redirectUrl, payload, {
-            headers: {
-              'Authorization': `Bearer ${this.apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 30000,
-            validateStatus: function (status) {
-              return status >= 200 && status < 300; // Only accept 2xx responses
-            }
-          });
-          console.log('Redirect response status:', response.status);
-          console.log('Redirect response data:', response.data);
-        } else {
-          throw error;
+      const response = await this.client.post('/payments', payload);
+      
+      // Check if we got a redirect response
+      if (response.status === 307) {
+        const redirectUrl = response.headers.location;
+        console.log('Following redirect to:', redirectUrl);
+        
+        // Make request to redirect URL
+        const redirectResponse = await require('axios').post(redirectUrl, payload, {
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000
+        });
+        console.log('Redirect response status:', redirectResponse.status);
+        console.log('Redirect response data:', redirectResponse.data);
+        
+        // Use the redirect response instead
+        console.log('UseGateway response status:', redirectResponse.status);
+        console.log('UseGateway response headers:', redirectResponse.headers);
+        console.log('UseGateway response data:', redirectResponse.data);
+        
+        if (!redirectResponse.data) {
+          console.error('UseGateway returned empty response');
+          throw new Error('UseGateway API returned empty response');
         }
+        
+        return redirectResponse.data;
       }
       
       console.log('UseGateway response status:', response.status);
