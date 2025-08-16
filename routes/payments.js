@@ -114,15 +114,34 @@ router.post('/create', authenticateBot, async (req, res) => {
 
       console.log('UseGateway payment created:', gatewayPayment);
 
+      // Validate UseGateway response
+      if (!gatewayPayment.address && !gatewayPayment.payment_address) {
+        console.error('UseGateway response missing address:', gatewayPayment);
+        return res.status(500).json({
+          success: false,
+          error: 'UseGateway did not return payment address',
+          details: 'Missing address field in UseGateway response'
+        });
+      }
+
+      if (!gatewayPayment.payment_url && !gatewayPayment.url) {
+        console.error('UseGateway response missing payment URL:', gatewayPayment);
+        return res.status(500).json({
+          success: false,
+          error: 'UseGateway did not return payment URL', 
+          details: 'Missing payment URL field in UseGateway response'
+        });
+      }
+
       const payment = new Payment({
         paymentId: paymentId,
         botToken: req.headers['x-bot-token'],
         telegramUserId: telegramUserId,
         currency: upperCurrency,
         amount: amount,
-        amountInCrypto: gatewayPayment.crypto_amount || 0,
-        address: gatewayPayment.address,
-        paymentUrl: gatewayPayment.payment_url,
+        amountInCrypto: gatewayPayment.crypto_amount || gatewayPayment.amount_crypto || 0,
+        address: gatewayPayment.address || gatewayPayment.payment_address,
+        paymentUrl: gatewayPayment.payment_url || gatewayPayment.url,
         status: 'pending',
         expiresAt: new Date(Date.now() + 30 * 60 * 1000)
       });
