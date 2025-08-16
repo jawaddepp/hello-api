@@ -51,10 +51,11 @@ const authenticateBot = async (req, res, next) => {
 // POST /api/payments/create
 router.post('/create', authenticateBot, async (req, res) => {
   try {
+    console.log('Payment creation request:', req.body);
     const { telegramUserId, currency, amount } = req.body;
 
-    // Validate input
     if (!telegramUserId || !currency || !amount) {
+      console.log('Missing fields:', { telegramUserId, currency, amount });
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: telegramUserId, currency, amount'
@@ -62,70 +63,95 @@ router.post('/create', authenticateBot, async (req, res) => {
     }
 
     if (amount <= 0) {
+      console.log('Invalid amount:', amount);
       return res.status(400).json({
         success: false,
         error: 'Amount must be greater than 0'
       });
     }
 
-    // Validate currency is allowed for this bot
     const upperCurrency = currency.toUpperCase();
+    console.log('Bot allowed currencies:', req.bot.allowedCurrencies);
+    
     if (!req.bot.allowedCurrencies.includes(upperCurrency)) {
+      console.log('Currency not allowed:', upperCurrency);
       return res.status(400).json({
         success: false,
         error: `Currency ${upperCurrency} is not allowed for this bot. Allowed currencies: ${req.bot.allowedCurrencies.join(', ')}`
       });
     }
 
-    // Generate unique payment ID
     const paymentId = uuidv4();
-    
-    // Create payment with UseGateway
     const webhookUrl = `${process.env.SERVER_URL}/api/payments/webhook`;
-
-    const gatewayPayment = await req.bot.useGateway.createPayment({
-      currency: currency.toUpperCase(),
-      amount: amount,
+    
+    console.log('Creating UseGateway payment:', {
+      currency: upperCurrency,
+      amount,
       orderId: paymentId,
-      callbackUrl: webhookUrl,
-      returnUrl: null // No return URL needed since this is an API
+      callbackUrl: webhookUrl
     });
 
-    // Save payment to database
-    const payment = new Payment({
-      paymentId: paymentId,
-      botName: req.headers['x-bot-name'],
-      botToken: req.headers['x-bot-token'],
-      telegramUserId: telegramUserId,
-      currency: currency.toUpperCase(),
-      amount: amount,
-      amountInCrypto: gatewayPayment.crypto_amount || 0,
-      address: gatewayPayment.address,
-      paymentUrl: gatewayPayment.payment_url,
-      status: 'pending',
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000) // 30 minutes
-    });
+    try {
+      const gatewayPayment = await req.bot.useGateway.createPayment({
+        currency: upperCurrency,
+        amount: amount,
+        orderId: paymentId,
+        callbackUrl: webhookUrl,
+        returnUrl: null
+      });
 
-    await payment.save();
+      console.log('UseGateway payment created:', gatewayPayment);
 
-    // Return only necessary data for the Telegram bot
-    res.json({
-      success: true,
-      data: {
-        paymentId: payment.paymentId,
-        currency: payment.currency,
-        amount: payment.amount,
-        amountInCrypto: payment.amountInCrypto,
-        address: payment.address,
-        expiresAt: payment.expiresAt
-      }
-    });
+      const payment = new Payment({
+        paymentId: paymentId,
+        botName: req.bot.name,
+        telegramUserId: telegramUserId,
+        currency: upperCurrency,
+        amount: amount,
+        amountInCrypto: gatewayPayment.crypto_amount || 0,
+        address: gatewayPayment.address,
+        paymentUrl: gatewayPayment.payment_url,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000)
+      });
+
+      await payment.save();
+      console.log('Payment saved to database:', payment);
+
+      return res.json({
+        success: true,
+        data: {
+          paymentId: payment.paymentId,
+          currency: payment.currency,
+          amount: payment.amount,
+          amountInCrypto: payment.amountInCrypto,
+          address: payment.address,
+          expiresAt: payment.expiresAt
+        }
+      });
+
+    } catch (gatewayError) {
+      console.error('UseGateway API error:', {
+        error: gatewayError.message,
+        response: gatewayError.response?.data,
+        status: gatewayError.response?.status
+      });
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to create payment with gateway',
+        details: gatewayError.response?.data?.message || gatewayError.message
+      });
+    }
 
   } catch (error) {
-    console.error('Payment creation error:', error);
+    console.error('Payment creation error:', {
+      error: error.message,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
-      error: 'Failed to create payment'
+      error: 'Failed to create payment',
+      details: error.message
     });
   }
 });
