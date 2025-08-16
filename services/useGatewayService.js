@@ -92,15 +92,20 @@ class UseGatewayService {
    * @param {string} signature - Webhook signature header
    * @returns {boolean} True if signature is valid
    */
-  verifyWebhookSignature(payload, signature) {
+    verifyWebhookSignature(payload, signature) {
     try {
+      if (!signature) {
+        console.error('No signature provided for webhook verification');
+        return false;
+      }
+
       const expectedSignature = crypto
         .createHmac('sha256', this.webhookSecret)
         .update(payload, 'utf8')
         .digest('hex');
-      
+
       const receivedSignature = signature.replace('sha256=', '');
-      
+
       return crypto.timingSafeEqual(
         Buffer.from(expectedSignature, 'hex'),
         Buffer.from(receivedSignature, 'hex')
