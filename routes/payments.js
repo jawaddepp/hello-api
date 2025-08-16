@@ -124,14 +124,35 @@ router.post('/create', authenticateBot, async (req, res) => {
         });
       }
 
+      // Get the correct address based on currency
+      let cryptoAddress = 'pending';
+      if (gatewayPayment.addresses) {
+        switch(upperCurrency) {
+          case 'BTC':
+            cryptoAddress = gatewayPayment.addresses.BTC;
+            break;
+          case 'ETH':
+            cryptoAddress = gatewayPayment.addresses.ETH;
+            break;
+          case 'USDT':
+            cryptoAddress = gatewayPayment.addresses.USDT_TRC20 || gatewayPayment.addresses.USDT_ERC20 || gatewayPayment.addresses.USDT_BEP20;
+            break;
+          case 'LTC':
+            cryptoAddress = gatewayPayment.addresses.LTC;
+            break;
+          default:
+            cryptoAddress = Object.values(gatewayPayment.addresses)[0] || 'pending';
+        }
+      }
+
       const payment = new Payment({
         paymentId: paymentId,
         botToken: req.headers['x-bot-token'],
         telegramUserId: telegramUserId,
         currency: upperCurrency,
         amount: amount,
-        amountInCrypto: 0, // UseGateway handles conversion internally
-        address: gatewayPayment.addresses?.bitcoin || gatewayPayment.addresses?.ethereum || 'pending',
+        amountInCrypto: gatewayPayment.pricing?.[upperCurrency.toLowerCase()]?.amount || 0,
+        address: cryptoAddress,
         paymentUrl: gatewayPayment.hosted_url,
         status: 'pending',
         expiresAt: new Date(Date.now() + 30 * 60 * 1000)
@@ -261,7 +282,11 @@ router.post('/webhook', async (req, res) => {
     }
     
     console.log('Webhook data received:', webhookData);
-    const { order_id, status, tx_hash } = webhookData;
+    
+    // Extract order_id from UseGateway webhook format
+    const order_id = webhookData.data?.metadata?.order_id;
+    const status = webhookData.data?.confirmed_at ? 'completed' : 'pending';
+    const tx_hash = webhookData.data?.transactions?.[0]?.hash;
 
     // Find the payment to get the associated bot
     const payment = await Payment.findOne({ paymentId: order_id }).select('+botToken');
