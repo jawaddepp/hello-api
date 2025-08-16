@@ -82,13 +82,24 @@ router.post('/create', authenticateBot, async (req, res) => {
     }
 
     const paymentId = uuidv4();
+    
+    if (!process.env.SERVER_URL) {
+      console.error('SERVER_URL environment variable is not set');
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error',
+        details: 'Webhook URL is not configured'
+      });
+    }
+
     const webhookUrl = `${process.env.SERVER_URL}/api/payments/webhook`;
     
     console.log('Creating UseGateway payment:', {
       currency: upperCurrency,
       amount,
       orderId: paymentId,
-      callbackUrl: webhookUrl
+      callbackUrl: webhookUrl,
+      serverUrl: process.env.SERVER_URL
     });
 
     try {

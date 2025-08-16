@@ -11,6 +11,9 @@ const botRoutes = require('./routes/bots');
 
 const app = express();
 
+// Trust proxy - required for rate limiting behind reverse proxy
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 app.use(cors());
@@ -18,9 +21,10 @@ app.use(cors());
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100 // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false
 });
-app.use('/api/', limiter);
 
 // Body parsing middleware
 app.use(express.json());

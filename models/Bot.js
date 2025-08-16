@@ -4,7 +4,6 @@ const botSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
     trim: true
   },
   registeredBy: {
@@ -15,7 +14,6 @@ const botSchema = new mongoose.Schema({
   token: {
     type: String,
     required: true,
-    unique: true,
     select: false
   },
   useGateway: {
