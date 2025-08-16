@@ -2,14 +2,9 @@
   "name": "hello-api",
   "version": "1.0.0",
   "private": true,
-  "description": "Tiny Express API for Dokploy testing",
-  "scripts": {
-    "start": "node index.js"
-  },
-  "engines": {
-    "node": ">=18"
-  },
+  "scripts": { "start": "node index.js" },
   "dependencies": {
-    "express": "^4.19.2"
+    "express": "^4.19.2",
+    "mongoose": "^8.5.0"
   }
 }
