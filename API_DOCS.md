@@ -72,7 +72,6 @@ Headers:
 POST /api/payments/create
 Headers:
   x-bot-token: BOT_TELEGRAM_TOKEN
-  x-bot-name: BOT_NAME
 Body:
 {
   "telegramUserId": "user_telegram_id",
@@ -102,7 +101,6 @@ Response:
 GET /api/payments/{paymentId}
 Headers:
   x-bot-token: BOT_TELEGRAM_TOKEN
-  x-bot-name: BOT_NAME
 ```
 
 Response:
@@ -136,12 +134,13 @@ When payment is confirmed, the system will automatically send a message to the u
 
 2. **Register Your Bot**
    - Use the register endpoint with your Telegram ID
-   - Store bot name and token for future requests
+   - Include your bot's name and Telegram token
    - Include UseGateway credentials
+   - Save the bot token for future API requests
 
 3. **Create Payment Flow**
    - When user requests payment in your bot:
-     1. Call create payment endpoint
+     1. Call create payment endpoint with your bot token
      2. Send payment address to user
      3. Start checking payment status
      4. Wait for webhook confirmation
@@ -163,7 +162,7 @@ Common error responses:
 
 Status codes:
 - 400: Invalid input
-- 401: Authentication failed
+- 401: Authentication failed (invalid or missing bot token)
 - 404: Resource not found
 - 500: Server error
 
@@ -173,3 +172,4 @@ Status codes:
 - Use HTTPS in production
 - Validate webhook signatures
 - Monitor bot activity through logs
+- Each bot token must be unique

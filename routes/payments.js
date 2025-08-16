@@ -8,22 +8,21 @@ const router = express.Router();
 
 const authenticateBot = async (req, res, next) => {
   const botToken = req.headers['x-bot-token'];
-  const botName = req.headers['x-bot-name'];
 
-  if (!botToken || !botName) {
+  if (!botToken) {
     return res.status(401).json({
       success: false,
-      error: 'Missing bot authentication headers'
+      error: 'Missing bot token header'
     });
   }
 
   try {
-    const bot = await Bot.findOne({ name: botName }).select('+token +useGateway.apiKey +useGateway.webhookSecret');
+    const bot = await Bot.findOne({ token: botToken }).select('+token +useGateway.apiKey +useGateway.webhookSecret');
     
-    if (!bot || bot.token !== botToken || !bot.isActive) {
+    if (!bot || !bot.isActive) {
       return res.status(401).json({
         success: false,
-        error: 'Invalid bot credentials or bot is inactive'
+        error: 'Invalid bot token or bot is inactive'
       });
     }
 
