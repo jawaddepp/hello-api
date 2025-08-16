@@ -60,14 +60,27 @@ class UseGatewayService {
               'Authorization': `Bearer ${this.apiKey}`,
               'Content-Type': 'application/json'
             },
-            timeout: 30000
+            timeout: 30000,
+            validateStatus: function (status) {
+              return status >= 200 && status < 300; // Only accept 2xx responses
+            }
           });
+          console.log('Redirect response status:', response.status);
+          console.log('Redirect response data:', response.data);
         } else {
           throw error;
         }
       }
       
-      console.log('UseGateway response:', response.data);
+      console.log('UseGateway response status:', response.status);
+      console.log('UseGateway response headers:', response.headers);
+      console.log('UseGateway response data:', response.data);
+      
+      if (!response.data) {
+        console.error('UseGateway returned empty response');
+        throw new Error('UseGateway API returned empty response');
+      }
+      
       return response.data;
     } catch (error) {
       console.error('UseGateway API Error:', {
