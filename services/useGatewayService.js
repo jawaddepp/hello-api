@@ -12,6 +12,11 @@ class UseGatewayService {
       headers: {
         'Authorization': `Bearer ${this.apiKey}`,
         'Content-Type': 'application/json'
+      },
+      maxRedirects: 0, // Disable automatic redirects to prevent loops
+      timeout: 30000, // 30 second timeout
+      validateStatus: function (status) {
+        return status >= 200 && status < 400; // Accept redirects as valid
       }
     });
   }
@@ -38,10 +43,39 @@ class UseGatewayService {
         expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
       };
 
-      const response = await this.client.post('/payments', payload);
+      console.log('Sending to UseGateway:', payload);
+      
+      let response;
+      try {
+        response = await this.client.post('/payments', payload);
+      } catch (error) {
+        // Handle redirect response
+        if (error.response && error.response.status === 307) {
+          const redirectUrl = error.response.headers.location;
+          console.log('Following redirect to:', redirectUrl);
+          
+          // Make request to redirect URL
+          response = await require('axios').post(redirectUrl, payload, {
+            headers: {
+              'Authorization': `Bearer ${this.apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000
+          });
+        } else {
+          throw error;
+        }
+      }
+      
+      console.log('UseGateway response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('UseGateway API Error:', error.response?.data || error.message);
+      console.error('UseGateway API Error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        headers: error.response?.headers
+      });
       throw new Error(`Payment creation failed: ${error.response?.data?.message || error.message}`);
     }
   }
