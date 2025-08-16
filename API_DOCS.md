@@ -66,6 +66,8 @@ Headers:
 
 ## Payment Operations
 
+**Note:** All payment operations only require the bot token. Bot name is only used during registration.
+
 ### 1. Create Payment
 
 ```http
@@ -75,8 +77,8 @@ Headers:
 Body:
 {
   "telegramUserId": "user_telegram_id",
-  "currency": "BTC",
-  "amount": 100
+  "currency": "USDT",
+  "amount": 1
 }
 ```
 
@@ -86,8 +88,8 @@ Response:
   "success": true,
   "data": {
     "paymentId": "unique_payment_id",
-    "currency": "BTC",
-    "amount": 100,
+    "currency": "USDT",
+    "amount": 1,
     "amountInCrypto": 0.0034,
     "address": "crypto_address",
     "expiresAt": "2024-03-20T12:30:00.000Z"
@@ -127,28 +129,57 @@ When payment is confirmed, the system will automatically send a message to the u
 
 ## Step by Step Integration Guide
 
-1. **Setup Bot with UseGateway.net**
-   - Create account on UseGateway.net
-   - Get API key and webhook secret
-   - Set webhook URL to: `{YOUR_SERVER_URL}/api/payments/webhook`
+### 1. Setup Bot with UseGateway.net
+- Create account on UseGateway.net
+- Get API key and webhook secret
+- Set webhook URL to: `{YOUR_SERVER_URL}/api/payments/webhook`
 
-2. **Register Your Bot**
-   - Use the register endpoint with your Telegram ID
-   - Include your bot's name and Telegram token
-   - Include UseGateway credentials
-   - Save the bot token for future API requests
+### 2. Register Your Bot
+- Use the register endpoint with your Telegram ID as admin
+- Include your bot's name and Telegram token
+- Include UseGateway credentials
+- **Save only the bot token** for future API requests
 
-3. **Create Payment Flow**
-   - When user requests payment in your bot:
-     1. Call create payment endpoint with your bot token
-     2. Send payment address to user
-     3. Start checking payment status
-     4. Wait for webhook confirmation
+### 3. Create Payment Flow
+- When user requests payment in your bot:
+  1. Call create payment endpoint with **only your bot token**
+  2. Send payment address to user
+  3. Start checking payment status
+  4. Wait for webhook confirmation
 
-4. **Handle Payment Updates**
-   - System automatically processes webhooks
-   - Your bot will receive confirmation message
-   - Update your bot's UI accordingly
+### 4. Handle Payment Updates
+- System automatically processes webhooks
+- Your bot will receive confirmation message
+- Update your bot's UI accordingly
+
+## Authentication
+
+- **Bot Registration**: Requires admin Telegram ID
+- **Payment Operations**: Only requires bot token (`x-bot-token` header)
+- **Bot Management**: Requires admin Telegram ID
+
+## Example Bot Integration
+
+```javascript
+// Create payment
+const response = await axios.post('YOUR_SERVER_URL/api/payments/create', {
+  telegramUserId: user.id,
+  currency: 'USDT',
+  amount: 10
+}, {
+  headers: {
+    'x-bot-token': process.env.BOT_TOKEN,
+    'Content-Type': 'application/json'
+  }
+});
+
+// Check payment status
+const status = await axios.get(`YOUR_SERVER_URL/api/payments/${paymentId}`, {
+  headers: {
+    'x-bot-token': process.env.BOT_TOKEN
+  }
+});
+```
 
 ## Error Handling
 
@@ -156,20 +187,23 @@ Common error responses:
 ```json
 {
   "success": false,
-  "error": "Error message"
+  "error": "Error message",
+  "details": "Additional error details"
 }
 ```
 
 Status codes:
-- 400: Invalid input
+- 400: Invalid input or currency not allowed
 - 401: Authentication failed (invalid or missing bot token)
 - 404: Resource not found
-- 500: Server error
+- 500: Server error or UseGateway API error
 
 ## Security Notes
 
-- Keep bot tokens and UseGateway credentials secure
+- Keep bot tokens secure - they are the only authentication needed
 - Use HTTPS in production
-- Validate webhook signatures
+- Bot tokens are never returned in API responses
+- Each bot has its own UseGateway credentials
+- Webhook signatures are verified per bot
 - Monitor bot activity through logs
-- Each bot token must be unique
+- Bot tokens must be unique across all registered bots
