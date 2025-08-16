@@ -231,12 +231,26 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
 
 
 // POST /api/payments/webhook
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+router.post('/webhook', async (req, res) => {
   try {
     const signature = req.headers['x-signature'] || req.headers['x-usegateway-signature'];
-    const payload = req.body;
-
-    const webhookData = JSON.parse(payload);
+    
+    // Handle both raw and parsed JSON
+    let webhookData;
+    let payload;
+    
+    if (typeof req.body === 'string') {
+      payload = req.body;
+      webhookData = JSON.parse(payload);
+    } else if (typeof req.body === 'object') {
+      webhookData = req.body;
+      payload = JSON.stringify(req.body);
+    } else {
+      console.error('Invalid webhook payload type:', typeof req.body);
+      return res.status(400).json({ error: 'Invalid payload' });
+    }
+    
+    console.log('Webhook data received:', webhookData);
     const { order_id, status, tx_hash } = webhookData;
 
     // Find the payment to get the associated bot
