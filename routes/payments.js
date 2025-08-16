@@ -114,22 +114,13 @@ router.post('/create', authenticateBot, async (req, res) => {
 
       console.log('UseGateway payment created:', gatewayPayment);
 
-      // Validate UseGateway response
-      if (!gatewayPayment.address && !gatewayPayment.payment_address) {
-        console.error('UseGateway response missing address:', gatewayPayment);
+      // Validate UseGateway response based on their API docs
+      if (!gatewayPayment.hosted_url) {
+        console.error('UseGateway response missing hosted_url:', gatewayPayment);
         return res.status(500).json({
           success: false,
-          error: 'UseGateway did not return payment address',
-          details: 'Missing address field in UseGateway response'
-        });
-      }
-
-      if (!gatewayPayment.payment_url && !gatewayPayment.url) {
-        console.error('UseGateway response missing payment URL:', gatewayPayment);
-        return res.status(500).json({
-          success: false,
-          error: 'UseGateway did not return payment URL', 
-          details: 'Missing payment URL field in UseGateway response'
+          error: 'UseGateway did not return payment URL',
+          details: 'Missing hosted_url field in UseGateway response'
         });
       }
 
@@ -139,9 +130,9 @@ router.post('/create', authenticateBot, async (req, res) => {
         telegramUserId: telegramUserId,
         currency: upperCurrency,
         amount: amount,
-        amountInCrypto: gatewayPayment.crypto_amount || gatewayPayment.amount_crypto || 0,
-        address: gatewayPayment.address || gatewayPayment.payment_address,
-        paymentUrl: gatewayPayment.payment_url || gatewayPayment.url,
+        amountInCrypto: 0, // UseGateway handles conversion internally
+        address: gatewayPayment.addresses?.bitcoin || gatewayPayment.addresses?.ethereum || 'pending',
+        paymentUrl: gatewayPayment.hosted_url,
         status: 'pending',
         expiresAt: new Date(Date.now() + 30 * 60 * 1000)
       });

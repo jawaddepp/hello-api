@@ -10,14 +10,11 @@ class UseGatewayService {
     this.client = axios.create({
       baseURL: this.baseURL,
       headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-        'Content-Type': 'application/json'
+        'x-api-key': this.apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      maxRedirects: 0, // Disable automatic redirects to prevent loops
-      timeout: 30000, // 30 second timeout
-      validateStatus: function (status) {
-        return status >= 200 && status < 400; // Accept redirects as valid
-      }
+      timeout: 30000
     });
   }
 
@@ -34,56 +31,26 @@ class UseGatewayService {
   async createPayment(paymentData) {
     try {
       const payload = {
-        currency: paymentData.currency,
-        amount: paymentData.amount,
-        order_id: paymentData.orderId,
-        callback_url: paymentData.callbackUrl,
-        return_url: paymentData.returnUrl,
+        name: `${paymentData.currency} Payment`,
         description: `Payment for order ${paymentData.orderId}`,
-        expires_at: new Date(Date.now() + 30 * 60 * 1000).toISOString() // 30 minutes
+        pricing_type: "fixed_price",
+        local_price: {
+          amount: paymentData.amount,
+          currency: paymentData.currency
+        },
+        metadata: {
+          order_id: paymentData.orderId
+        },
+        redirect_url: paymentData.callbackUrl,
+        cancel_url: paymentData.callbackUrl
       };
 
       console.log('Sending to UseGateway:', payload);
       
-      const response = await this.client.post('/payments', payload);
-      
-      // Check if we got a redirect response
-      if (response.status === 307) {
-        const redirectUrl = response.headers.location;
-        console.log('Following redirect to:', redirectUrl);
-        
-        // Make request to redirect URL
-        const redirectResponse = await require('axios').post(redirectUrl, payload, {
-          headers: {
-            'Authorization': `Bearer ${this.apiKey}`,
-            'Content-Type': 'application/json'
-          },
-          timeout: 30000
-        });
-        console.log('Redirect response status:', redirectResponse.status);
-        console.log('Redirect response data:', redirectResponse.data);
-        
-        // Use the redirect response instead
-        console.log('UseGateway response status:', redirectResponse.status);
-        console.log('UseGateway response headers:', redirectResponse.headers);
-        console.log('UseGateway response data:', redirectResponse.data);
-        
-        if (!redirectResponse.data) {
-          console.error('UseGateway returned empty response');
-          throw new Error('UseGateway API returned empty response');
-        }
-        
-        return redirectResponse.data;
-      }
+      const response = await this.client.post('/payments/', payload);
       
       console.log('UseGateway response status:', response.status);
-      console.log('UseGateway response headers:', response.headers);
       console.log('UseGateway response data:', response.data);
-      
-      if (!response.data) {
-        console.error('UseGateway returned empty response');
-        throw new Error('UseGateway API returned empty response');
-      }
       
       return response.data;
     } catch (error) {
