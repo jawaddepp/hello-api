@@ -10,11 +10,7 @@ const paymentSchema = new mongoose.Schema({
     required: true,
     index: true
   },
-  botToken: {
-    type: String,
-    required: true,
-    select: false // This ensures the token isn't returned in queries by default
-  },
+
   telegramUserId: {
     type: String,
     required: true
