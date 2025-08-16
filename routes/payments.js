@@ -1,5 +1,6 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const axios = require('axios');
 const Payment = require('../models/Payment');
 const Bot = require('../models/Bot');
 const UseGatewayService = require('../services/useGatewayService');
@@ -174,8 +175,7 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
 
     const payment = await Payment.findOne({
       paymentId,
-      botName: req.headers['x-bot-name'],
-      botToken: req.headers['x-bot-token']
+      botName: req.bot.name
     });
     if (!payment) {
       return res.status(404).json({
@@ -269,8 +269,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     // Send notification to the specific Telegram bot
     if (payment.status === 'confirmed') {
       try {
-        // Construct the bot-specific webhook URL using the bot token
-        const webhookUrl = `https://api.telegram.org/bot${payment.botToken}/sendMessage`;
+        // Get the bot token for notifications
+        const bot = await Bot.findOne({ name: payment.botName }).select('+token');
+        const webhookUrl = `https://api.telegram.org/bot${bot.token}/sendMessage`;
         
         await axios.post(webhookUrl, {
           chat_id: payment.telegramUserId,

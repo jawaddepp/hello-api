@@ -72,7 +72,7 @@ paymentSchema.pre('save', function(next) {
 // Index for efficient queries
 paymentSchema.index({ paymentId: 1 });
 paymentSchema.index({ botName: 1, telegramUserId: 1, status: 1 });
-paymentSchema.index({ botToken: 1 }); // For token verification
+
 paymentSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 module.exports = mongoose.model('Payment', paymentSchema);
