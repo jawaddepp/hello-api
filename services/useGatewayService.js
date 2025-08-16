@@ -36,10 +36,11 @@ class UseGatewayService {
         pricing_type: "fixed_price",
         local_price: {
           amount: paymentData.amount,
-          currency: paymentData.currency
+          currency: "USD" // UseGateway expects USD for local_price, crypto currency is handled separately
         },
         metadata: {
-          order_id: paymentData.orderId
+          order_id: paymentData.orderId,
+          crypto_currency: paymentData.currency // Store the actual crypto currency in metadata
         },
         redirect_url: paymentData.callbackUrl,
         cancel_url: paymentData.callbackUrl
@@ -60,6 +61,12 @@ class UseGatewayService {
         status: error.response?.status,
         headers: error.response?.headers
       });
+      
+      // Log detailed validation errors
+      if (error.response?.data?.detail) {
+        console.error('UseGateway validation errors:', JSON.stringify(error.response.data.detail, null, 2));
+      }
+      
       throw new Error(`Payment creation failed: ${error.response?.data?.message || error.message}`);
     }
   }
