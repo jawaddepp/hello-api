@@ -5,10 +5,11 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  botName: {
+  botToken: {
     type: String,
     required: true,
-    index: true
+    index: true,
+    select: false
   },
 
   telegramUserId: {
@@ -71,7 +72,7 @@ paymentSchema.pre('save', function(next) {
 
 // Index for efficient queries
 paymentSchema.index({ paymentId: 1 });
-paymentSchema.index({ botName: 1, telegramUserId: 1, status: 1 });
+paymentSchema.index({ botToken: 1, telegramUserId: 1, status: 1 });
 
 paymentSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 

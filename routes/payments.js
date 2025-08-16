@@ -116,7 +116,7 @@ router.post('/create', authenticateBot, async (req, res) => {
 
       const payment = new Payment({
         paymentId: paymentId,
-        botName: req.bot.name,
+        botToken: req.headers['x-bot-token'],
         telegramUserId: telegramUserId,
         currency: upperCurrency,
         amount: amount,
@@ -173,10 +173,10 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
   try {
     const { paymentId } = req.params;
 
-    const payment = await Payment.findOne({
+    const payment = await Payment.findOne({ 
       paymentId,
-      botName: req.bot.name
-    });
+      botToken: req.headers['x-bot-token']
+    }).select('+botToken');
     if (!payment) {
       return res.status(404).json({
         success: false,
@@ -194,7 +194,7 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
     if (payment.status === 'pending') {
       try {
         // Get the bot's UseGateway service for this payment
-        const bot = await Bot.findOne({ name: payment.botName }).select('+useGateway.apiKey +useGateway.webhookSecret');
+        const bot = await Bot.findOne({ token: payment.botToken }).select('+useGateway.apiKey +useGateway.webhookSecret');
         const botGateway = new UseGatewayService(bot.useGateway.apiKey, bot.useGateway.webhookSecret);
         const gatewayStatus = await botGateway.getPaymentStatus(paymentId);
         if (gatewayStatus.status === 'completed' && payment.status !== 'confirmed') {
@@ -240,19 +240,19 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     const { order_id, status, tx_hash } = webhookData;
 
     // Find the payment to get the associated bot
-    const payment = await Payment.findOne({ paymentId: order_id });
+    const payment = await Payment.findOne({ paymentId: order_id }).select('+botToken');
     if (!payment) {
       console.error('Payment not found for webhook:', order_id);
       return res.status(404).json({ error: 'Payment not found' });
     }
 
     // Get the bot's UseGateway service to verify the signature
-    const bot = await Bot.findOne({ name: payment.botName }).select('+useGateway.webhookSecret');
+    const bot = await Bot.findOne({ token: payment.botToken }).select('+useGateway.webhookSecret +token');
     const botGateway = new UseGatewayService(null, bot.useGateway.webhookSecret); // Only need webhook secret for verification
 
     // Verify webhook signature
     if (!botGateway.verifyWebhookSignature(payload, signature)) {
-      console.error('Invalid webhook signature for bot:', payment.botName);
+      console.error('Invalid webhook signature for bot token:', payment.botToken);
       return res.status(401).json({ error: 'Invalid signature' });
     }
 
@@ -269,8 +269,6 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
     // Send notification to the specific Telegram bot
     if (payment.status === 'confirmed') {
       try {
-        // Get the bot token for notifications
-        const bot = await Bot.findOne({ name: payment.botName }).select('+token');
         const webhookUrl = `https://api.telegram.org/bot${bot.token}/sendMessage`;
         
         await axios.post(webhookUrl, {
@@ -279,9 +277,9 @@ router.post('/webhook', express.raw({ type: 'application/json' }), async (req, r
           parse_mode: 'HTML'
         });
         
-        console.log(`Payment notification sent to bot ${payment.botName} for user ${payment.telegramUserId}`);
+        console.log(`Payment notification sent to bot for user ${payment.telegramUserId}`);
       } catch (notificationError) {
-        console.error(`Failed to send notification to bot ${payment.botName}:`, notificationError.message);
+        console.error(`Failed to send notification to bot:`, notificationError.message);
       }
     }
 
