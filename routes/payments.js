@@ -145,33 +145,34 @@ router.post('/create', authenticateBot, async (req, res) => {
         }
       }
 
-      const payment = new Payment({
-        paymentId: paymentId,
-        botToken: req.headers['x-bot-token'],
-        telegramUserId: telegramUserId,
-        currency: upperCurrency,
-        amount: amount,
-        amountInCrypto: gatewayPayment.pricing?.[upperCurrency.toLowerCase()]?.amount || 0,
-        address: cryptoAddress,
-        paymentUrl: gatewayPayment.hosted_url,
-        status: 'pending',
-        expiresAt: new Date(Date.now() + 30 * 60 * 1000)
-      });
+                    const payment = new Payment({
+                paymentId: paymentId,
+                botToken: req.headers['x-bot-token'],
+                telegramUserId: telegramUserId,
+                currency: upperCurrency,
+                amount: amount,
+                amountInCrypto: gatewayPayment.pricing?.[upperCurrency.toLowerCase()]?.amount || 0,
+                address: cryptoAddress,
+                paymentUrl: gatewayPayment.hosted_url,
+                status: 'pending',
+                expiresAt: new Date(Date.now() + 30 * 60 * 1000)
+              });
 
-      await payment.save();
-      console.log('Payment saved to database:', payment);
+              await payment.save();
+              console.log('Payment saved to database:', payment);
 
-      return res.json({
-        success: true,
-        data: {
-          paymentId: payment.paymentId,
-          currency: payment.currency,
-          amount: payment.amount,
-          amountInCrypto: payment.amountInCrypto,
-          address: payment.address,
-          expiresAt: payment.expiresAt
-        }
-      });
+              return res.json({
+                success: true,
+                data: {
+                  paymentId: payment.paymentId,
+                  currency: payment.currency,
+                  amount: payment.amount,
+                  amountInCrypto: payment.amountInCrypto,
+                  address: payment.address,
+                  expiresAt: payment.expiresAt,
+                  useGatewayResponse: gatewayPayment
+                }
+              });
 
     } catch (gatewayError) {
       console.error('UseGateway API error:', {
