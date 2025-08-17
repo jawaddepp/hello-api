@@ -21,7 +21,6 @@ Body:
 {
   "name": "my_bot_name",
   "token": "bot_telegram_token",
-  "allowedCurrencies": ["BTC", "ETH", "USDT"],
   "useGateway": {
     "apiKey": "your_usegateway_api_key",
     "webhookSecret": "your_usegateway_webhook_secret"
@@ -35,7 +34,6 @@ Response:
   "success": true,
   "data": {
     "name": "my_bot_name",
-    "allowedCurrencies": ["BTC", "ETH", "USDT"],
     "isActive": true,
     "createdAt": "2024-03-20T12:00:00.000Z"
   }
@@ -77,10 +75,15 @@ Headers:
 Body:
 {
   "telegramUserId": "user_telegram_id",
-  "currency": "USDT",
+  "currency": "USDT_TRC20",
   "amount": 1
 }
 ```
+
+**Supported Currencies:**
+- Any currency supported by UseGateway.net
+- Examples: `BTC`, `ETH`, `LTC`, `USDT_TRC20`, `USDT_ERC20`, `USDT_BEP20`, `USDC_ERC20`, `USDC_BEP20`, etc.
+- No restrictions - bots can use any available cryptocurrency
 
 Response:
 ```json

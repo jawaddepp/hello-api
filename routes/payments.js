@@ -34,7 +34,6 @@ const authenticateBot = async (req, res, next) => {
 
     req.bot = {
       name: bot.name,
-      allowedCurrencies: bot.allowedCurrencies,
       useGateway
     };
 
@@ -71,16 +70,7 @@ router.post('/create', authenticateBot, async (req, res) => {
       });
     }
 
-    const upperCurrency = currency.toUpperCase();
-    console.log('Bot allowed currencies:', req.bot.allowedCurrencies);
-    
-    if (!req.bot.allowedCurrencies.includes(upperCurrency)) {
-      console.log('Currency not allowed:', upperCurrency);
-      return res.status(400).json({
-        success: false,
-        error: `Currency ${upperCurrency} is not allowed for this bot. Allowed currencies: ${req.bot.allowedCurrencies.join(', ')}`
-      });
-    }
+                const upperCurrency = currency.toUpperCase();
 
     const paymentId = uuidv4();
     
@@ -125,25 +115,14 @@ router.post('/create', authenticateBot, async (req, res) => {
       }
 
       // Get the correct address based on currency
-      let cryptoAddress = 'pending';
-      if (gatewayPayment.addresses) {
-        switch(upperCurrency) {
-          case 'BTC':
-            cryptoAddress = gatewayPayment.addresses.BTC;
-            break;
-          case 'ETH':
-            cryptoAddress = gatewayPayment.addresses.ETH;
-            break;
-          case 'USDT':
-            cryptoAddress = gatewayPayment.addresses.USDT_TRC20 || gatewayPayment.addresses.USDT_ERC20 || gatewayPayment.addresses.USDT_BEP20;
-            break;
-          case 'LTC':
-            cryptoAddress = gatewayPayment.addresses.LTC;
-            break;
-          default:
-            cryptoAddress = Object.values(gatewayPayment.addresses)[0] || 'pending';
-        }
-      }
+                    let cryptoAddress = 'pending';
+              if (gatewayPayment.addresses) {
+                if (gatewayPayment.addresses[upperCurrency]) {
+                  cryptoAddress = gatewayPayment.addresses[upperCurrency];
+                } else {
+                  cryptoAddress = Object.values(gatewayPayment.addresses)[0] || 'pending';
+                }
+              }
 
                     const payment = new Payment({
                 paymentId: paymentId,

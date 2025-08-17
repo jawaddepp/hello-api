@@ -39,10 +39,6 @@ const botSchema = new mongoose.Schema({
   lastUsedAt: {
     type: Date,
     default: Date.now
-  },
-  allowedCurrencies: {
-    type: [String],
-    default: ['BTC', 'ETH', 'USDT']
   }
 });
 

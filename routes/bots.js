@@ -18,10 +18,9 @@ const verifyAdminTelegramId = (req, res, next) => {
 // POST /api/bots/register
 router.post('/register', verifyAdminTelegramId, async (req, res) => {
   try {
-    const { 
-      name, 
-      token, 
-      allowedCurrencies,
+        const {
+      name,
+      token,
       useGateway: {
         apiKey: gatewayApiKey,
         webhookSecret: gatewayWebhookSecret
@@ -52,8 +51,7 @@ router.post('/register', verifyAdminTelegramId, async (req, res) => {
     const bot = new Bot({
       name,
       token,
-      allowedCurrencies: allowedCurrencies || ['BTC', 'ETH', 'USDT'],
-      registeredBy: req.headers['x-admin-telegram-id'], // Store who registered this bot
+      registeredBy: req.headers['x-admin-telegram-id'],
       useGateway: {
         apiKey: gatewayApiKey,
         webhookSecret: gatewayWebhookSecret
@@ -66,7 +64,6 @@ router.post('/register', verifyAdminTelegramId, async (req, res) => {
       success: true,
       data: {
         name: bot.name,
-        allowedCurrencies: bot.allowedCurrencies,
         isActive: bot.isActive,
         createdAt: bot.createdAt
       }
