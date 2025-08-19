@@ -81,12 +81,52 @@ class UseGatewayService {
         return false;
       }
 
+      // Handle svix signature format (v1,signature1 v1,signature2)
+      if (signature.includes('v1,')) {
+        console.log('Processing svix signature format');
+        const signatures = signature.split(' ');
+        
+        for (const sig of signatures) {
+          if (sig.startsWith('v1,')) {
+            const sigValue = sig.substring(3); // Remove 'v1,'
+            try {
+              const expectedSignature = crypto
+                .createHmac('sha256', this.webhookSecret)
+                .update(payload, 'utf8')
+                .digest('base64');
+
+              if (sigValue === expectedSignature) {
+                console.log('Svix signature verified successfully');
+                return true;
+              }
+            } catch (e) {
+              console.log('Failed to verify signature:', sigValue);
+              continue;
+            }
+          }
+        }
+        console.log('No valid svix signatures found');
+        return false;
+      }
+
+      // Handle regular signature formats
       const expectedSignature = crypto
         .createHmac('sha256', this.webhookSecret)
         .update(payload, 'utf8')
         .digest('hex');
 
-      const receivedSignature = signature.replace('sha256=', '');
+      let receivedSignature = signature;
+      if (signature.startsWith('sha256=')) {
+        receivedSignature = signature.replace('sha256=', '');
+      }
+
+      if (expectedSignature.length !== receivedSignature.length) {
+        console.error('Signature length mismatch:', {
+          expected: expectedSignature.length,
+          received: receivedSignature.length
+        });
+        return false;
+      }
 
       return crypto.timingSafeEqual(
         Buffer.from(expectedSignature, 'hex'),

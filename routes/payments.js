@@ -321,6 +321,9 @@ router.post('/webhook', async (req, res) => {
 
     // Verify webhook signature
     console.log('Signature found:', signature ? 'Yes' : 'No');
+    console.log('Signature value:', signature);
+    console.log('Payload length:', payload ? payload.length : 'undefined');
+    
     if (signature) {
       if (!botGateway.verifyWebhookSignature(payload, signature)) {
         console.error('Invalid webhook signature for bot token:', payment.botToken);
