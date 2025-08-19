@@ -18,16 +18,7 @@ class UseGatewayService {
     });
   }
 
-  /**
-   * Create a new payment request
-   * @param {Object} paymentData - Payment details
-   * @param {string} paymentData.currency - Cryptocurrency (BTC, ETH, USDT, etc.)
-   * @param {number} paymentData.amount - Amount in USD
-   * @param {string} paymentData.orderId - Unique order identifier
-   * @param {string} paymentData.callbackUrl - Webhook URL for payment notifications
-   * @param {string} paymentData.returnUrl - URL to redirect after payment
-   * @returns {Promise<Object>} Payment creation response
-   */
+
   async createPayment(paymentData) {
     try {
       const payload = {
@@ -71,11 +62,7 @@ class UseGatewayService {
     }
   }
 
-  /**
-   * Get payment status
-   * @param {string} paymentId - Payment ID from UseGateway
-   * @returns {Promise<Object>} Payment status response
-   */
+
   async getPaymentStatus(paymentId) {
     try {
       const response = await this.client.get(`/payments/${paymentId}`);
@@ -86,12 +73,7 @@ class UseGatewayService {
     }
   }
 
-  /**
-   * Verify webhook signature
-   * @param {string} payload - Raw webhook payload
-   * @param {string} signature - Webhook signature header
-   * @returns {boolean} True if signature is valid
-   */
+
     verifyWebhookSignature(payload, signature) {
     try {
       if (!signature) {
@@ -116,10 +98,7 @@ class UseGatewayService {
     }
   }
 
-  /**
-   * Get supported currencies
-   * @returns {Promise<Array>} List of supported currencies
-   */
+
   async getSupportedCurrencies() {
     try {
       const response = await this.client.get('/currencies');
@@ -141,11 +120,8 @@ class UseGatewayService {
     }
   }
 
-  /**
-   * Get current exchange rates
-   * @param {string} currency - Cryptocurrency code
-   * @returns {Promise<Object>} Exchange rate data
-   */
+  
+
   async getExchangeRate(currency) {
     try {
       const response = await this.client.get(`/rates/${currency}`);

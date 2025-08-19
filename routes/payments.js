@@ -262,12 +262,30 @@ router.post('/webhook', async (req, res) => {
       return res.status(400).json({ error: 'Invalid payload' });
     }
     
-    console.log('Webhook data received:', webhookData);
+    console.log('Webhook data received:', JSON.stringify(webhookData, null, 2));
     
     // Extract order_id from UseGateway webhook format
     const order_id = webhookData.data?.metadata?.order_id;
     const status = webhookData.data?.confirmed_at ? 'completed' : 'pending';
-    const tx_hash = webhookData.data?.transactions?.[0]?.hash;
+    
+    // Try multiple possible paths for transaction hash
+    let tx_hash = null;
+    if (webhookData.data?.transactions && webhookData.data.transactions.length > 0) {
+      tx_hash = webhookData.data.transactions[0]?.hash || 
+                webhookData.data.transactions[0]?.transaction_hash ||
+                webhookData.data.transactions[0]?.txid ||
+                webhookData.data.transactions[0]?.tx_hash;
+    }
+    
+    // Alternative paths for tx hash
+    tx_hash = tx_hash || 
+              webhookData.data?.transaction_hash ||
+              webhookData.data?.tx_hash ||
+              webhookData.data?.txid ||
+              webhookData.transaction_hash ||
+              webhookData.tx_hash;
+              
+    console.log('Extracted transaction hash:', tx_hash);
 
     // Find the payment to get the associated bot
     const payment = await Payment.findOne({ paymentId: order_id }).select('+botToken');
@@ -306,10 +324,13 @@ router.post('/webhook', async (req, res) => {
     if (payment.status === 'confirmed') {
       try {
         const webhookUrl = `https://api.telegram.org/bot${bot.token}/sendMessage`;
-        
+        const transactionText = payment.txHash ? 
+          `\nTransaction: ${payment.txHash}` : 
+          `\nTransaction: Confirmed (hash pending)`;
+          
         await axios.post(webhookUrl, {
           chat_id: payment.telegramUserId,
-          text: `✅ Payment confirmed!\n\nAmount: ${payment.amount} ${payment.currency}\nTransaction: ${payment.txHash}`,
+          text: `✅ Payment confirmed!\n\nAmount: ${payment.amount} ${payment.currency}${transactionText}`,
           parse_mode: 'HTML'
         });
         
