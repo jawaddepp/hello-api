@@ -324,18 +324,21 @@ router.post('/webhook', async (req, res) => {
     console.log('Signature value:', signature);
     console.log('Payload length:', payload ? payload.length : 'undefined');
     
-    if (signature) {
-      if (!botGateway.verifyWebhookSignature(payload, signature, req.headers)) {
-        console.error('Invalid webhook signature for bot token:', payment.botToken);
-        console.warn('Signature verification failed, but continuing to process webhook (development mode)');
-        // TODO: Enable strict signature verification in production
-        // return res.status(401).json({ error: 'Invalid signature' });
-      } else {
-        console.log('Webhook signature verified successfully');
-      }
-    } else {
-      console.warn('No webhook signature provided - accepting webhook (this may be insecure in production)');
-    }
+    // Temporarily disable signature verification for development
+    console.log('Webhook signature verification temporarily disabled for development');
+    
+    // if (signature) {
+    //   if (!botGateway.verifyWebhookSignature(payload, signature, req.headers)) {
+    //     console.error('Invalid webhook signature for bot token:', payment.botToken);
+    //     console.warn('Signature verification failed, but continuing to process webhook (development mode)');
+    //     // TODO: Enable strict signature verification in production
+    //     // return res.status(401).json({ error: 'Invalid signature' });
+    //   } else {
+    //     console.log('Webhook signature verified successfully');
+    //   }
+    // } else {
+    //   console.warn('No webhook signature provided - accepting webhook (this may be insecure in production)');
+    // }
 
     // Update payment status
     const oldStatus = payment.status;
