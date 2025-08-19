@@ -210,23 +210,7 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
       await payment.save();
     }
 
-    // Get latest status from UseGateway if payment is pending
-    if (payment.status === 'pending') {
-      try {
-        // Get the bot's UseGateway service for this payment
-        const bot = await Bot.findOne({ token: payment.botToken }).select('+useGateway.apiKey +useGateway.webhookSecret');
-        const botGateway = new UseGatewayService(bot.useGateway.apiKey, bot.useGateway.webhookSecret);
-        const gatewayStatus = await botGateway.getPaymentStatus(paymentId);
-        if (gatewayStatus.status === 'completed' && payment.status !== 'confirmed') {
-          payment.status = 'confirmed';
-          payment.txHash = gatewayStatus.tx_hash;
-          await payment.save();
-        }
-      } catch (statusError) {
-        console.error('Failed to get gateway status:', statusError);
-        // Continue with local status if gateway check fails
-      }
-    }
+    // Status is updated via webhook, no need to poll UseGateway
 
     // Return simplified response for Telegram bot
     res.json({
@@ -315,30 +299,10 @@ router.post('/webhook', async (req, res) => {
       return res.status(404).json({ error: 'Payment not found' });
     }
 
-    // Get the bot's UseGateway service to verify the signature
-    const bot = await Bot.findOne({ token: payment.botToken }).select('+useGateway.webhookSecret +token');
-    const botGateway = new UseGatewayService(null, bot.useGateway.webhookSecret); // Only need webhook secret for verification
-
-    // Verify webhook signature
-    console.log('Signature found:', signature ? 'Yes' : 'No');
-    console.log('Signature value:', signature);
-    console.log('Payload length:', payload ? payload.length : 'undefined');
+    // Get the bot's token for Telegram notification
+    const bot = await Bot.findOne({ token: payment.botToken }).select('+token');
     
-    // Temporarily disable signature verification for development
-    console.log('Webhook signature verification temporarily disabled for development');
-    
-    // if (signature) {
-    //   if (!botGateway.verifyWebhookSignature(payload, signature, req.headers)) {
-    //     console.error('Invalid webhook signature for bot token:', payment.botToken);
-    //     console.warn('Signature verification failed, but continuing to process webhook (development mode)');
-    //     // TODO: Enable strict signature verification in production
-    //     // return res.status(401).json({ error: 'Invalid signature' });
-    //   } else {
-    //     console.log('Webhook signature verified successfully');
-    //   }
-    // } else {
-    //   console.warn('No webhook signature provided - accepting webhook (this may be insecure in production)');
-    // }
+    console.log('Processing webhook for payment:', order_id);
 
     // Update payment status
     const oldStatus = payment.status;

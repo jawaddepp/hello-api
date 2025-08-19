@@ -14,7 +14,11 @@ class UseGatewayService {
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      timeout: 30000
+      timeout: 30000,
+      maxRedirects: 0,
+      validateStatus: function (status) {
+        return status >= 200 && status < 400;
+      }
     });
   }
 
