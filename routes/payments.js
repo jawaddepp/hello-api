@@ -212,15 +212,22 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
 
     // Status is updated via webhook, no need to poll UseGateway
 
-    // Return simplified response for Telegram bot
+    // Return complete payment details for Telegram bot
     res.json({
       success: true,
       data: {
         paymentId: payment.paymentId,
         gatewayPaymentId: payment.gatewayPaymentId,
+        currency: payment.currency,
+        amount: payment.amount,
+        amountInCrypto: payment.amountInCrypto,
         status: payment.status,
         txHash: payment.txHash,
-        expiresAt: payment.expiresAt
+        address: payment.address,
+        paymentUrl: payment.paymentUrl,
+        createdAt: payment.createdAt,
+        expiresAt: payment.expiresAt,
+        updatedAt: payment.updatedAt
       }
     });
 
