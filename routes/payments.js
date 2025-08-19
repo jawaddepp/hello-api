@@ -325,12 +325,12 @@ router.post('/webhook', async (req, res) => {
       try {
         const webhookUrl = `https://api.telegram.org/bot${bot.token}/sendMessage`;
         const transactionText = payment.txHash ? 
-          `\nTransaction: ${payment.txHash}` : 
-          `\nTransaction: Confirmed (hash pending)`;
+          `رقم العملية: ${payment.txHash}` : 
+          `رقم العملية: تم التأكيد (في انتظار الرقم)`;
           
         await axios.post(webhookUrl, {
           chat_id: payment.telegramUserId,
-          text: `✅ Payment confirmed!\n\nAmount: ${payment.amount} ${payment.currency}${transactionText}`,
+          text: `✅ تم تأكيد الدفع!\n\nالعملة: ${payment.currency}\nالمبلغ: ${payment.amount}\n${transactionText}`,
           parse_mode: 'HTML'
         });
         
