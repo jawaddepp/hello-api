@@ -74,7 +74,7 @@ class UseGatewayService {
   }
 
 
-    verifyWebhookSignature(payload, signature) {
+    verifyWebhookSignature(payload, signature, headers = {}) {
     try {
       if (!signature) {
         console.error('No signature provided for webhook verification');
@@ -86,21 +86,35 @@ class UseGatewayService {
         console.log('Processing svix signature format');
         const signatures = signature.split(' ');
         
+        // Get svix headers for proper signature verification
+        const svixId = headers['svix-id'] || '';
+        const svixTimestamp = headers['svix-timestamp'] || '';
+        
+        console.log('Svix ID:', svixId);
+        console.log('Svix Timestamp:', svixTimestamp);
+        
+        // Create the signing string: svix-id.svix-timestamp.payload
+        const signingString = `${svixId}.${svixTimestamp}.${payload}`;
+        console.log('Signing string length:', signingString.length);
+        
         for (const sig of signatures) {
           if (sig.startsWith('v1,')) {
             const sigValue = sig.substring(3); // Remove 'v1,'
             try {
               const expectedSignature = crypto
                 .createHmac('sha256', this.webhookSecret)
-                .update(payload, 'utf8')
+                .update(signingString, 'utf8')
                 .digest('base64');
+
+              console.log('Expected signature:', expectedSignature);
+              console.log('Received signature:', sigValue);
 
               if (sigValue === expectedSignature) {
                 console.log('Svix signature verified successfully');
                 return true;
               }
             } catch (e) {
-              console.log('Failed to verify signature:', sigValue);
+              console.log('Failed to verify signature:', sigValue, e.message);
               continue;
             }
           }
