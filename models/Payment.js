@@ -5,6 +5,11 @@ const paymentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  gatewayPaymentId: {
+    type: String,
+    required: false,
+    index: true
+  },
   botToken: {
     type: String,
     required: true,

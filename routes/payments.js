@@ -126,6 +126,7 @@ router.post('/create', authenticateBot, async (req, res) => {
 
                     const payment = new Payment({
                 paymentId: paymentId,
+                gatewayPaymentId: gatewayPayment.id,
                 botToken: req.headers['x-bot-token'],
                 telegramUserId: telegramUserId,
                 currency: upperCurrency,
@@ -144,6 +145,7 @@ router.post('/create', authenticateBot, async (req, res) => {
                 success: true,
                 data: {
                   paymentId: payment.paymentId,
+                  gatewayPaymentId: payment.gatewayPaymentId,
                   currency: payment.currency,
                   amount: payment.amount,
                   amountInCrypto: payment.amountInCrypto,
@@ -185,8 +187,15 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
     const { paymentId } = req.params;
 
     const payment = await Payment.findOne({ 
-      paymentId,
-      botToken: req.headers['x-bot-token']
+      $and: [
+        { 
+          $or: [
+            { paymentId: paymentId },
+            { gatewayPaymentId: paymentId }
+          ]
+        },
+        { botToken: req.headers['x-bot-token'] }
+      ]
     }).select('+botToken');
     if (!payment) {
       return res.status(404).json({
@@ -224,6 +233,7 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
       success: true,
       data: {
         paymentId: payment.paymentId,
+        gatewayPaymentId: payment.gatewayPaymentId,
         status: payment.status,
         txHash: payment.txHash,
         expiresAt: payment.expiresAt
@@ -245,7 +255,7 @@ router.get('/:paymentId', authenticateBot, async (req, res) => {
 router.post('/webhook', async (req, res) => {
   try {
     console.log('Webhook headers received:', Object.keys(req.headers));
-    const signature = req.headers['x-signature'] || req.headers['x-usegateway-signature'] || req.headers['signature'];
+    const signature = req.headers['x-signature'] || req.headers['x-usegateway-signature'] || req.headers['signature'] || req.headers['svix-signature'];
     
     // Handle both raw and parsed JSON
     let webhookData;
@@ -265,8 +275,14 @@ router.post('/webhook', async (req, res) => {
     console.log('Webhook data received:', JSON.stringify(webhookData, null, 2));
     
     // Extract order_id from UseGateway webhook format
-    const order_id = webhookData.data?.metadata?.order_id;
+    // Try multiple possible locations for the payment ID
+    const order_id = webhookData.data?.metadata?.order_id || 
+                     webhookData.data?.id ||
+                     webhookData.data?.metadata?.payment_id;
     const status = webhookData.data?.confirmed_at ? 'completed' : 'pending';
+    
+    console.log('Extracted order_id:', order_id);
+    console.log('Webhook event type:', webhookData.event);
     
     // Try multiple possible paths for transaction hash
     let tx_hash = null;
@@ -288,7 +304,12 @@ router.post('/webhook', async (req, res) => {
     console.log('Extracted transaction hash:', tx_hash);
 
     // Find the payment to get the associated bot
-    const payment = await Payment.findOne({ paymentId: order_id }).select('+botToken');
+    const payment = await Payment.findOne({ 
+      $or: [
+        { paymentId: order_id },
+        { gatewayPaymentId: order_id }
+      ]
+    }).select('+botToken');
     if (!payment) {
       console.error('Payment not found for webhook:', order_id);
       return res.status(404).json({ error: 'Payment not found' });
@@ -320,7 +341,6 @@ router.post('/webhook', async (req, res) => {
 
     console.log(`Payment ${order_id} status updated: ${oldStatus} -> ${payment.status}`);
 
-    // Send notification to the specific Telegram bot
     if (payment.status === 'confirmed') {
       try {
         const webhookUrl = `https://api.telegram.org/bot${bot.token}/sendMessage`;
