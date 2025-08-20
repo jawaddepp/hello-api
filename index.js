@@ -37,7 +37,34 @@ mongoose.connect(MONGODB_URI, {
   retryWrites: true,
   w: 'majority'
 })
-.then(() => console.log('✅ MongoDB connected'))
+.then(async () => {
+  console.log('✅ MongoDB connected');
+  
+  // Remove TTL index to prevent payment deletion
+  try {
+    const db = mongoose.connection.db;
+    const paymentsCollection = db.collection('payments');
+    
+    // List all indexes
+    const indexes = await paymentsCollection.indexes();
+    console.log('Current payment indexes:', indexes.map(idx => ({ name: idx.name, key: idx.key, expireAfterSeconds: idx.expireAfterSeconds })));
+    
+    // Find and drop the TTL index
+    const ttlIndex = indexes.find(index => 
+      index.key && index.key.expiresAt && index.expireAfterSeconds !== undefined
+    );
+
+    if (ttlIndex) {
+      console.log('Found TTL index:', ttlIndex.name);
+      await paymentsCollection.dropIndex(ttlIndex.name);
+      console.log('✅ TTL index dropped - payments will no longer be auto-deleted');
+    } else {
+      console.log('✅ No TTL index found - payments are safe');
+    }
+  } catch (error) {
+    console.error('⚠️ Could not remove TTL index:', error.message);
+  }
+})
 .catch(err => {
   console.error('❌ MongoDB connection failed:', err.message);
 });
