@@ -330,13 +330,13 @@ router.post('/webhook', async (req, res) => {
           
         await axios.post(webhookUrl, {
           chat_id: payment.telegramUserId,
-          text: `✅ تم تأكيد الدفع!\n\nالعملة: ${payment.currency}\nالمبلغ بالدولار: $${payment.amount}\nالمبلغ بالعملة الرقمية: ${payment.amountInCrypto} ${payment.currency}\n${transactionText}\n\nمعرف الدفع الداخلي: ${payment.paymentId}\nالحالة: ${payment.status === 'confirmed' ? 'مؤكد' : payment.status}`,
+          text: `✅ تم وصول المبلغ!\n\n<b>• العملة:</b> <code>${payment.currency}</code>\n<b>• المبلغ بالدولار:</b> <code>$${payment.amount}</code>\n<b>• المبلغ بالعملة الرقمية:</b> <code>${payment.amountInCrypto} ${payment.currency}</code>\n${transactionText}\n<b>• الحالة:</b> <code>${payment.status === 'confirmed' ? 'مؤكد' : payment.status}</code>`,
           parse_mode: 'HTML',
           reply_markup: {
             inline_keyboard: [
               [
                 {
-                  text: "اضغط لتأكيد الدفع",
+                  text: "☑️ اضغط لتأكيد الدفع",
                   callback_data: `confirm_payment_sent_${payment.paymentId}`
                 }
               ]
