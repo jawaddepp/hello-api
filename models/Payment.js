@@ -77,7 +77,7 @@ paymentSchema.pre('save', function(next) {
 // Index for efficient queries
 paymentSchema.index({ paymentId: 1 });
 paymentSchema.index({ botToken: 1, telegramUserId: 1, status: 1 });
-paymentSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 }); // Auto-delete after 7 days
+paymentSchema.index({ expiresAt: 1 }); // Index without TTL - payments are kept permanently
 
 module.exports = mongoose.model('Payment', paymentSchema);
 
